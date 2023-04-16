@@ -1,0 +1,30 @@
+from bs4 import BeautifulSoup
+import requests 
+import json 
+import sqlite3
+import matplotlib.pyplot as plt
+
+#  Client ID: MzMxMTQzMzB8MTY4MTY2NDgzMC44MjY1NjMx
+#  app secret is 3373a058217d4c32f9d63156df24a5a1e1df1b337b8dd55665ad6d72da7f21f2
+
+# https://api.seatgeek.com/2/events?client_id=MYCLIENTID
+
+def get_api(url):
+    response = requests.get(url)
+    # print(response.status_code)
+    json_data = response.json()
+
+    print(json_data["events"])
+
+
+
+
+def main():
+    api_key = "MzMxMTQzMzB8MTY4MTY2NDgzMC44MjY1NjMx"
+    url = "https://api.seatgeek.com/2/events?client_id={}".format(api_key)
+    get_api(url)
+
+main()
+
+    
+
