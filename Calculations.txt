@@ -1,0 +1,20 @@
+SeatGeek Calculations
+
+Percentage breakdown of SeatGeek event types:
+Percentage of concert events: 17%
+Percentage of minor_league_baseball events: 28%
+Percentage of music_festival events: 8%
+Percentage of pga events: 1%
+Percentage of theater events: 12%
+Percentage of family events: 3%
+Percentage of classical_orchestral_instrumental events: 2%
+Percentage of sports events: 2%
+Percentage of broadway_tickets_national events: 11%
+Percentage of mlb events: 5%
+Percentage of cirque_du_soleil events: 1%
+Percentage of basketball events: 1%
+Percentage of comedy events: 4%
+Percentage of boxing events: 2%
+Percentage of hockey events: 1%
+Percentage of dance_performance_tour events: 1%
+Percentage of mma events: 1%
