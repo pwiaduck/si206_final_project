@@ -110,13 +110,14 @@ for genre, prices in genre_prices.items():
 
 
 # Write calculations to text file
-    f = open("Calculations.txt", "w")
-    f.write("TicketMaster Calculations\n")
+with open("Calculations.txt", "a") as f:
+    f.write("\nTicketMaster Calculations\n")
     f.write("\n")
     f.write("Average TicketMaster Ticket Prices by Event Genre/Type\n")
     
     for genre, price in avg_prices.items():
         calculationwrite = f.write(f"Average price of {genre}: {price}\n")
+
 
 # Get the keys and values for plotting
 genre = list(avg_prices.keys())
