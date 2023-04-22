@@ -28,7 +28,7 @@ def get_data(client_id, client_secret, cur, conn):
 
     d = {}
     lst = []
-    for page_num in range(1,5):
+    for page_num in range(1,6):
         # print(page_num)
         # print()
         url = "https://api.seatgeek.com/2/events?client_id=MzMxMTQzMzB8MTY4MTY5ODU5MC4wMjcyMjUz&client_secret=a690c0e907a03b4c2b760ba8d10013677be69f4fcf96858a435f2b37072b6b8d&per_page=25&page={}".format(page_num)
@@ -42,7 +42,7 @@ def get_data(client_id, client_secret, cur, conn):
     # print(lst[0])
     return lst
 
-def find_event_types(lst):
+def find_unique_event_types(lst):
     types_lst = []
     for item in lst:
         for event in item["events"]:
@@ -52,14 +52,14 @@ def find_event_types(lst):
     return types_lst 
 
 def create_type_table(cur, conn, lst):
-    cur.execute("DROP TABLE IF EXISTS SeatGeek_types")
-    cur.execute("CREATE TABLE SeatGeek_types (id INTEGER PRIMARY KEY, type TEXT)")
-    for i in range(1, len(lst) + 1):
-        cur.execute("INSERT INTO SeatGeek_types (id,type) VALUES (?,?)",(i,lst[i-1]))
+    # cur.execute("DROP TABLE IF EXISTS SeatGeek_types")
+    cur.execute("CREATE TABLE IF NOT EXISTS SeatGeek_types (id INTEGER PRIMARY KEY, type TEXT)")
+    for i in range(0, len(lst)):
+        cur.execute("INSERT INTO SeatGeek_types (id,type) VALUES (?,?)",(i,lst[i]))
         # print(i, lst[i-1])
     conn.commit()
 
-def find_cities(lst):
+def find_unique_cities(lst):
     cities_lst = []
     for item in lst:
         for event in item["events"]:
@@ -69,46 +69,65 @@ def find_cities(lst):
     return cities_lst 
 
 def create_cities_table(cur, conn, lst):
-    cur.execute("DROP TABLE IF EXISTS SeatGeek_cities")
-    cur.execute("CREATE TABLE SeatGeek_cities (id INTEGER PRIMARY KEY, city TEXT)")
-    for i in range(1, len(lst) + 1):
-        cur.execute("INSERT INTO SeatGeek_cities (id,city) VALUES (?,?)",(i,lst[i-1]))
+    # cur.execute("DROP TABLE IF EXISTS SeatGeek_cities")
+    cur.execute("CREATE TABLE IF NOT EXISTS SeatGeek_cities (id INTEGER PRIMARY KEY, city TEXT)")
+    for i in range(0, len(lst)):
+        cur.execute("INSERT INTO SeatGeek_cities (id,city) VALUES (?,?)",(i,lst[i]))
         # print(i, lst[i-1])
     conn.commit()
 
-def create_events_table(cur, conn, data, index, count, max, events, cities):
-    
-    lst = []
-    while count <= max:
-        for event in data[index]["events"]:
-            count += 1
-            event_type = 0
-            location = 0
+def find_performers(lst):
+    performers_lst = []
+    for item in lst:
+        for event in item["events"]:
+            if event["performers"][0]["name"] not in performers_lst:
+                 performers_lst.append(event["performers"][0]["name"])  
+    # print(len(performers_lst))
+    return performers_lst
 
-             # # ASSIGN EVENT TYPE NUM
-            for type in events:
-                if type == event["type"]:
-                    event_type = events.index(type) + 1
+def find_types(lst):
+    types = []
+    for item in lst:
+        for event in item["events"]:
+            type = (event["type"])
+            types.append(type)
+    # print(types)
+    return types
 
-            # ASSIGN LOCATION/CITY NUM
-            for city in cities:
-                if city == event["venue"]["city"]:
-                    location = cities.index(city) + 1
+def find_cities(lst):
+    cities = []
+    for item in lst:
+        for event in item["events"]:
+            city = (event["venue"]["city"])
+            cities.append(city)
+    return cities
 
+def assign_type_vals(unique, all):
+    # print(unique)
+    # print(all)
+    lst_event_types = []
+    for event in all:
+        type_num = unique.index(event) + 1
+        lst_event_types.append(type_num)
+        # print(type_num, event)
+        # print(len(lst_event_types))
+    return lst_event_types   
 
-            venue = event["venue"]["name_v2"]
-            performer = event["performers"][0]["name"]
+def assign_city_vals(unique, all):
+    lst_cities = []
+    for city in all:
+        city_num = unique.index(city) + 1
+        lst_cities.append(city_num)
+    # print(lst_cities)
+    return lst_cities
 
-            lst.append(performer)
-            if len(lst) > 25:
-                break
-                    
-            cur.execute("INSERT INTO SeatGeek_events (id,performer,event,venue,location) VALUES (?,?,?,?,?)", (count, performer, event_type, venue, location))
+def make_table(cur, conn, index, performers, types, cities):
+    for i in range(index, index+25):
+        # print(performers[i], types[i], cities[i])
+
+        cur.execute("INSERT OR IGNORE INTO SeatGeek_events (id, performer, event, location) VALUES (?, ?, ?, ?)",(i, performers[i], types[i], cities[i]))
     conn.commit()
-    # print(lst)
-    return count
-
-
+    
 def main():
 
     # Create database
@@ -121,21 +140,52 @@ def main():
     data_lst = get_data(client_id, client_secret, cur, conn)
 
     # Create table and list with all event types
-    event_types = find_event_types(data_lst)
-    create_type_table(cur, conn, event_types)
+    types_unique = find_unique_event_types(data_lst)
+    # create_type_table(cur, conn, event_types)
 
     # Create table and list with all cities
-    cities_lst = find_cities(data_lst)
-    create_cities_table(cur, conn, cities_lst)
+    cities_unique = find_unique_cities(data_lst)
+    # create_cities_table(cur, conn, cities_lst)
+
+    performers_lst = find_performers(data_lst)
+    # get_events_data(data_lst, event_types, cities_lst, index)
+
+    # GET ALL EVENT TYPES 
+    types_all = find_types(data_lst)
+
+    # GET ALL CITIES
+    cities_all = find_cities(data_lst)
+
+    # ASSIGN TYPE ID VALS
+    id_types = assign_type_vals(types_unique, types_all)
+    
+    # ASSIGN CITY ID VALS
+    id_cities = assign_city_vals(cities_unique, cities_all)
 
     # Create table with all events
-    cur.execute("DROP TABLE IF EXISTS SeatGeek_events")
-    cur.execute("CREATE TABLE SeatGeek_events (id INTEGER PRIMARY KEY, performer TEXT, event INTEGER, venue TEXT, location INTEGER)")
+    index = 0
+    # cur.execute("DROP TABLE IF EXISTS SeatGeek_events")
+    cur.execute("CREATE TABLE iF NOT EXISTS SeatGeek_events (id INTEGER PRIMARY KEY, performer TEXT, event INTEGER, location INTEGER)")
+    
+    cur.execute("SELECT COUNT('id') FROM SeatGeek_events")
+    count = cur.fetchall()
+    count = (count[0])
+    count = count[0]
 
-    count1 = create_events_table(cur, conn, data_lst, 0, 0, 25, event_types, cities_lst)
-    count2 = create_events_table(cur, conn, data_lst, 1, count1-1, 50, event_types, cities_lst)
-    count3 = create_events_table(cur, conn, data_lst, 2, count2-1, 75, event_types, cities_lst)
-    count4 = create_events_table(cur, conn, data_lst, 3, count3-1, 100, event_types, cities_lst)
+    # ADD 25 ROWS AT A TIME TO DATABASE
+    index = count
+    if count <= 100:
+            index = 0
+            if count == 25:
+                index = 25
+            elif count == 50:
+                index = 50
+            elif count == 75:
+                index = 75
+            else:
+                index = 0
+
+    make_table(cur, conn, index, performers_lst, id_types, id_cities)
 
     # CALCULATIONS 
     # Find the percentage brekdown of event type
@@ -147,7 +197,7 @@ def main():
 
     dict = {}
     count = 0
-    for type in event_types:
+    for type in types_unique:
         count += 1
         info_lst = []
         type_num = cur.execute("SELECT SeatGeek_events.performer, SeatGeek_types.type FROM SeatGeek_events JOIN SeatGeek_types ON SeatGeek_events.event = SeatGeek_types.id WHERE SeatGeek_types.type = ?", (type, ))
@@ -172,24 +222,22 @@ def main():
     f.write("Percentage breakdown of SeatGeek event types:\n")
     
     string = ""
-    for (event, num) in zip(event_types, calculations_lst):
+    for (event, num) in zip(types_unique, calculations_lst):
         string = "Percentage of {} events: {}%".format(event, str(num))
         f.write(string)
         f.write("\n")
+    
+    f.close()
 
     # Create pie chart of breakdowns 
     fig, ax = plt.subplots(figsize =(10, 6))
     ax.set_title("SeatGeek Events Breakdown")
 
     y = np.array(calculations_lst)
-    plt.pie(y, labels = event_types)
-    plt.legend(title = "Event Types", bbox_to_anchor=(1.05, 1), loc='upper left')
+    plt.pie(y, labels = types_unique, startangle = 25)
+    
+    plt.legend(title = "Event Types", loc='upper left', bbox_to_anchor=(1.05, 1))
     plt.show() 
 
 main()
         
-
-
-
-
-
