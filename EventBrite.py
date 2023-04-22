@@ -81,7 +81,7 @@ def make_events_table(index):
 
     conn = sqlite3.connect('final.db')
     cur = conn.cursor()
-    #print(region_list)
+
     no_dup_list = [*set(region_list)]
     for i in range(len(no_dup_list)):
         cur.execute("INSERT OR IGNORE INTO Regions (id, region) VALUES (?, ?)",(i, no_dup_list[i]))
