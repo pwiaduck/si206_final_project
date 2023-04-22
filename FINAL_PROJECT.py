@@ -78,13 +78,18 @@ def make_events_table(index):
         if region == 'Australia/Sydney':
             region_id = 5
         region_id_list.append(region_id)
-
-    conn = sqlite3.connect('final.db')
+    
+    conn = sqlite3.connect('EventBrite.db')
     cur = conn.cursor()
     #print(region_list)
     no_dup_list = [*set(region_list)]
     for i in range(len(no_dup_list)):
         cur.execute("INSERT OR IGNORE INTO Regions (id, region) VALUES (?, ?)",(i, no_dup_list[i]))
+    #count any column, make into a number in python, 
+    #make index what you have for count, when call function, 
+    # send with an index, range for loop, index +25 reset when you get to 100
+
+
 
     for i in range(index, index+25):
         cur.execute("INSERT OR IGNORE INTO Names (id, category_id, name, region_id) VALUES (?, ?, ?, ?)",(i, category_list[i], name_list[i], region_id_list[i]))
@@ -96,110 +101,134 @@ def category_table(url):
     api_url = requests.get(url)
     access_data = api_url.json()
     #print(access_data)
-    conn = sqlite3.connect('final.db')
+    conn = sqlite3.connect('EventBrite.db')
     cur = conn.cursor()
 
+    #cur.execute("DROP TABLE IF EXISTS Categories")
+    #cur.execute("CREATE TABLE IF NOT EXISTS Categories (id INTEGER PRIMARY KEY, name TEXT)")
 
     id_list = []
     name_list = []
-
+    #for part in access_data:
+        #print(part)
     categories = access_data['categories']
     for category in categories:
-
+        #print(category['id'])
+        #print(category['name'])
         cur.execute("INSERT OR IGNORE INTO Categories (id, name) VALUES (?,?)", (category['id'], category['name']))
-    conn.commit()
+        conn.commit()
 
+'''
+This function should also plot two barcharts in one figure. The first bar chart displays the categories 
+    along the y-axis and their ratings along the x-axis in descending order (by rating).
+    The second bar chart displays the buildings along the y-axis and their ratings along the x-axis 
+    in descending order (by rating).
+'''
 def calculations():
+    #print("calm")
 
-    conn = sqlite3.connect('final.db')
+    #create separate function for cur and conn?????
+    conn = sqlite3.connect('EventBrite.db')
     cur = conn.cursor()
 
     count_cat_dict = {}
     cat_id_list = [101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 199]
     for x in cat_id_list:
         cur.execute("SELECT COUNT(category_id) FROM Names WHERE category_id = ?", (x,))
+    #cur.execute("SELECT COUNT(Categories.name) FROM Names JOIN Categories ON categories.id = Names.category_id")
         count_rough = cur.fetchall()
         count_clean = count_rough[0][0]
-
+        #print(count_clean)
         if count_clean > 0:
             cur.execute("SELECT Categories.name FROM Names JOIN Categories ON Categories.id = Names.category_id WHERE category_id = ?", (x,))
             name_rough = cur.fetchall()
             name_clean = name_rough[0][0]
-
+        #if name_rough != ['']:
+        #name_clean = name_rough[0]
             count_cat_dict[name_clean] = count_clean
-
+    #need to write this in a text file
+    #print(count_cat_dict)
     return count_cat_dict
 
-def extra_calculations():
-    conn = sqlite3.connect('final.db')
-    cur = conn.cursor()
-
-    count_reg_dict = {}
-    for x in range(0,11):
-        cur.execute("SELECT COUNT(region_id) FROM Names WHERE region_id = ?", (x,))
-
-        count_rough = cur.fetchall()
-        count_clean = count_rough[0][0]
-
-        if count_clean > 0:
-            cur.execute("SELECT Regions.region FROM Names JOIN Regions ON Regions.id = Names.region_id WHERE region_id = ?", (x,))
-            name_rough = cur.fetchall()
-   
-            name_clean = name_rough[0][0]
- 
-            count_reg_dict[name_clean] = count_clean
-
-    return count_reg_dict
-
-def extra_visualization(dict):
-    conn = sqlite3.connect('final.db')
+def create_visual(dict):
+    conn = sqlite3.connect('EventBrite.db')
     cur = conn.cursor()
 
     names = list(dict.keys())
     values = list(dict.values())
 
-    plt.barh(names, values, color="magenta")
-    plt.title('Events per Region this Month')
-    plt.ylabel('Region')
-    plt.xlabel('Number of Events')
-    plt.show()
+    #plt.barh(names, values, color="pink")
+    #plt.title('Types of Popular Events this Month')
+    #plt.ylabel('Categories')
+    #plt.xlabel('Number of Each')
+    #plt.show()
+    '''
+        cat_dict = {}
+    for x in range(1,15):
+        cur.execute("SELECT COUNT(category_id) FROM restaurants WHERE category_id = ?", (x,))
+        count_rough = cur.fetchall()
+        count_clean = count_rough[0][0]
+        #print(count_clean)
+        cur.execute("SELECT categories.category FROM restaurants JOIN categories ON categories.id = restaurants.category_id WHERE category_id = ?", (x,))
+        name_rough = cur.fetchall()
+        name_clean = name_rough[0][0]
+        #print(name_clean)
+        cat_dict[name_clean] = int(count_clean)
+    '''
+    #test returns a list of tuples, category, Name, region_id
 
-def write_calculations(dict):
+def write_calculations():
     # Write calculations to text file
     f = open("Calculations.txt", "a")
     f.write("EventBrite Calculations\n")
     f.write("\n")
-    f.write("Count of Popular EventBrite event types:\n")
+    f.write("Count of EventBrite event types:\n")
     
-    names = list(dict.keys())
-    values = list(dict.values())
-
     string = ""
-    for (key, val) in zip(names, values):
-        string = f"{key}: {val} events"
-
+    for (event, num) in zip(event_types, calculations_lst):
+        string = "Percentage of {} events: {}%".format(event, str(num))
         f.write(string)
         f.write("\n")
 
+    # Create pie chart of breakdowns 
+    fig, ax = plt.subplots(figsize =(10, 6))
+    ax.set_title("SeatGeek Events Breakdown")
 
-def create_visual(dict):
-    conn = sqlite3.connect('final.db')
+'''
+def fix_duplicates():
+    conn = sqlite3.connect('EventBrite.db')
     cur = conn.cursor()
 
-    names = list(dict.keys())
-    values = list(dict.values())
+    cur.execute("SELECT region FROM Names")
+    regions = cur.fetchall()
+    #print(regions)
+    regions_list = []
+    remove_dup = [*set(regions)]
+    for region in remove_dup:
+        region = region[0]
+        regions_list.append(region)
+    for i in range(len(regions_list)):
+        cur.execute("INSERT OR IGNORE INTO Regions (id, region) VALUES (?,?)", (i, regions_list[i]))
 
-    plt.barh(names, values, color="pink")
-    plt.title('Types of Popular Events this Month')
-    plt.ylabel('Categories')
-    plt.xlabel('Number of Each')
-    plt.show()
+    conn.commit()
+'''
+
+def join_tables():
+    conn = sqlite3.connect('EventBrite.db')
+    cur = conn.cursor()
+    pass
+    #cur.execute("SELECT Names.id,Names.name,Names.region,Categories.name FROM Names JOIN Categories ON Names.category_id = Categories.id")
+    #Do the 25 thing here?????
 
 
+
+
+#count any column, make into a number in python, make index what you have for count, when call function, send with an index, range for loop, index +25 reset when you get to 100
+#100 rows!!!!
 
 def main():
     if __name__== "__main__" :
-        conn = sqlite3.connect('final.db')
+        conn = sqlite3.connect('EventBrite.db')
         cur = conn.cursor()
         #cur.execute("DROP TABLE IF EXISTS Names")
         cur.execute("CREATE TABLE IF NOT EXISTS Names (id INTEGER PRIMARY KEY, category_id INTEGER, name TEXT, region_id INTEGER)")
@@ -225,20 +254,18 @@ def main():
                 index = 75
             else:
                 index = 0
-        
         #print(count)
         #print(index)
         make_events_table(index)
-
-        cat_url = category_table('https://www.eventbriteapi.com/v3/categories/?token=F4WRZ3F74TBQCCDAVEQT')
+        #fix_duplicates()
+        #fix_duplicates()
+    #if count == 0:
+        #get_data()
         cat_count = calculations()
-        reg_count = extra_calculations()
-        extra_visualization(reg_count)
-        write_calculations(cat_count)
         create_visual(cat_count)
     #cur.execute()
 
         
         #call_events = make_events_table(index)
-        #cat_url = category_table('https://www.eventbriteapi.com/v3/categories/?token=F4WRZ3F74TBQCCDAVEQT')
+        cat_url = category_table('https://www.eventbriteapi.com/v3/categories/?token=F4WRZ3F74TBQCCDAVEQT')
 main()
