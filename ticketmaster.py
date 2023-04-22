@@ -148,7 +148,7 @@ print(avg_prices)
 
 
 # Write calculations to text file
-f = open("Calculations.txt", "w")
+f = open("Calculations.txt", "a")
 f.write("TicketMaster Calculations\n")
 f.write("\n")
 f.write("Average TicketMaster Ticket Prices by Event Genre/Type\n")
